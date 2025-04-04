@@ -4,7 +4,7 @@
 ## Overview
 
 Robust server-side browser that acts as an intermediary between users and the internet. By proxying all web requests through a server, enhances user privacy, eliminates client-side tracking, and provides a cleaner browsing experience. 
-This solution allows users to bypass corporate or any other browsing restrictions.
+This solution allows users to bypass corporate or any other browsing restrictions, under the assumption that the app is hosted remotely.
 
 **Key Features:**
 
