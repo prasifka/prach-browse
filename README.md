@@ -123,4 +123,4 @@ For security issues, please contact me on Discord `Pr4ch`
 
 ---
 
-© 2025 Prach Browse | Privacy-Enhanced Browsing
+2025 Prach Browse | Privacy-Enhanced Browsing
