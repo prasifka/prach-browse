@@ -1,0 +1,31 @@
+<%- include('partials/header') %>
+
+<div class="prach-container">
+  <div class="prach-search">
+    <div class="prach-search-header">
+      <h2>Search Results: <%= query %></h2>
+    </div>
+
+    <div class="prach-address-bar">
+      <form action="/search" method="GET">
+        <input
+          type="text"
+          name="q"
+          value="<%= query %>"
+          placeholder="Enter search query"
+        />
+        <button type="submit">Search</button>
+      </form>
+    </div>
+
+    <% if (error) { %>
+    <div class="prach-error">
+      <p><%= error %></p>
+    </div>
+    <% } else { %>
+    <div class="prach-content"><%- content %></div>
+    <% } %>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

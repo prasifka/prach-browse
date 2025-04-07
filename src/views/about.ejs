@@ -1,0 +1,97 @@
+<%- include('partials/header') %>
+
+<div class="prach-container">
+  <div class="prach-about">
+    <div class="prach-logo">
+      <img src="/img/prach-logo.png" alt="Prach Browse Logo" />
+      <h1>About Prach Browse</h1>
+    </div>
+
+    <div class="about-content">
+      <section class="about-section">
+        <h2>Overview</h2>
+        <p>
+          Prach Browse is a robust server-side browser that acts as an
+          intermediary between users and the internet. By proxying all web
+          requests through a server, Prach Browse enhances user privacy,
+          eliminates client-side tracking, and provides a cleaner browsing
+          experience.
+        </p>
+      </section>
+
+      <section class="about-section">
+        <h2>Key Features</h2>
+        <ul>
+          <li><strong>Server-side rendering</strong> of all web content</li>
+          <li><strong>Complete URL and search query processing</strong></li>
+          <li>
+            <strong>Secure file download handling</strong> via server
+            intermediation
+          </li>
+          <li>
+            <strong>Client-side privacy protection</strong> from tracking and
+            fingerprinting
+          </li>
+          <li><strong>Clean, intuitive user interface</strong></li>
+        </ul>
+      </section>
+
+      <section class="about-section">
+        <h2>Privacy Benefits</h2>
+        <ul>
+          <li>
+            <strong>IP Address Protection:</strong> Your actual IP address is
+            never exposed to destination websites
+          </li>
+          <li>
+            <strong>Fingerprint Reduction:</strong> Reduces browser
+            fingerprinting capabilities
+          </li>
+          <li>
+            <strong>Tracking Prevention:</strong> Blocks common tracking
+            mechanisms
+          </li>
+          <li>
+            <strong>Clean Content:</strong> Optional content filtering
+            capabilities
+          </li>
+          <li>
+            <strong>Request Anonymization:</strong> All requests appear to come
+            from the server
+          </li>
+        </ul>
+      </section>
+
+      <section class="about-section">
+        <h2>Architecture</h2>
+        <p>Prach Browse is built on a modern Node.js stack:</p>
+        <ul>
+          <li><strong>Express.js:</strong> Fast, minimalist web framework</li>
+          <li><strong>Axios:</strong> Promise-based HTTP client</li>
+          <li>
+            <strong>Cheerio:</strong> Server-side HTML parsing and manipulation
+          </li>
+          <li><strong>EJS:</strong> Templating engine for dynamic content</li>
+        </ul>
+        <p>The application follows a clean separation of concerns:</p>
+        <ul>
+          <li>
+            <strong>Server Layer:</strong> Handles HTTP requests and responses
+          </li>
+          <li>
+            <strong>Processing Layer:</strong> Transforms web content for
+            privacy
+          </li>
+          <li><strong>View Layer:</strong> Presents content to the user</li>
+        </ul>
+      </section>
+
+      <section class="about-section">
+        <h2>License</h2>
+        <p>This project is licensed under the GNU General Public License.</p>
+      </section>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

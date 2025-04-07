@@ -1,0 +1,64 @@
+<%- include('partials/header') %>
+
+<div class="prach-container">
+  <div class="prach-home">
+    <div class="prach-logo">
+      <img src="/img/prach-logo.png" alt="Prach Browse Logo" />
+      <h1>Prach Browse</h1>
+      <p class="tagline">
+        A high-performance, privacy-focused server-side browser solution
+      </p>
+    </div>
+
+    <div class="prach-search-box">
+      <form action="/browse" method="GET">
+        <input
+          type="text"
+          name="url"
+          placeholder="Enter a URL or search query"
+          value="<%= url %>"
+          autofocus
+        />
+        <button type="submit">Browse</button>
+      </form>
+    </div>
+
+    <% if (error) { %>
+    <div class="prach-error">
+      <p><%= error %></p>
+    </div>
+    <% } %>
+
+    <div class="prach-features">
+      <h2>Privacy Features</h2>
+      <div class="feature-grid">
+        <div class="feature-item">
+          <h3>IP Address Protection</h3>
+          <p>Your actual IP address is never exposed to destination websites</p>
+        </div>
+        <div class="feature-item">
+          <h3>Fingerprint Reduction</h3>
+          <p>Reduces browser fingerprinting capabilities</p>
+        </div>
+        <div class="feature-item">
+          <h3>Tracking Prevention</h3>
+          <p>Blocks common tracking mechanisms</p>
+        </div>
+        <div class="feature-item">
+          <h3>Clean Content</h3>
+          <p>Optional content filtering capabilities</p>
+        </div>
+        <div class="feature-item">
+          <h3>Request Anonymization</h3>
+          <p>All requests appear to come from the server</p>
+        </div>
+        <div class="feature-item">
+          <h3>Secure Downloads</h3>
+          <p>File downloads are handled securely via server</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

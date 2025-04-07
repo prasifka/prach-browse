@@ -1,0 +1,47 @@
+<%- include('partials/header') %>
+
+<div class="prach-container">
+  <div class="prach-error">
+    <div class="error-icon">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="64"
+        height="64"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+    </div>
+
+    <h1><%= title %></h1>
+
+    <div class="error-message">
+      <p><%= message %></p>
+
+      <% if (error && error.status) { %>
+      <p class="error-status">Status: <%= error.status %></p>
+      <% } %> <% if (process.env.NODE_ENV === 'development' && error &&
+      error.stack) { %>
+      <div class="error-stack">
+        <pre><%= error.stack %></pre>
+      </div>
+      <% } %>
+    </div>
+
+    <div class="error-actions">
+      <a href="/" class="btn-primary">Return to Home</a>
+      <button onclick="window.history.back()" class="btn-secondary">
+        Go Back
+      </button>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

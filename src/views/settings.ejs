@@ -1,0 +1,51 @@
+<%- include('partials/header') %>
+
+<div class="prach-container">
+  <div class="prach-settings">
+    <h1>Settings</h1>
+    
+    <form action="/settings" method="POST" class="settings-form">
+      <div class="settings-group">
+        <h2>Privacy Settings</h2>
+        
+        <div class="setting-item">
+          <label for="disableJs">
+            <input type="checkbox" id="disableJs" name="disableJs" <%= settings.disableJs ? 'checked' : '' %>>
+            Disable JavaScript
+          </label>
+          <p class="setting-description">Blocks all JavaScript execution for maximum privacy</p>
+        </div>
+        
+        <div class="setting-item">
+          <label for="userAgentRotation">
+            <input type="checkbox" id="userAgentRotation" name="userAgentRotation" <%= settings.userAgentRotation ? 'checked' : '' %>>
+            Enable User Agent Rotation
+          </label>
+          <p class="setting-description">Randomly changes browser identification to prevent tracking</p>
+        </div>
+      </div>
+      
+      <div class="settings-group">
+        <h2>Content Filtering</h2>
+        
+        <div class="setting-item">
+          <label for="contentFilter">Content Filter Level:</label>
+          <select id="contentFilter" name="contentFilter">
+            <option value="none" <%= settings.contentFilter === 'none' ? 'selected' : '' %>>None</option>
+            <option value="low" <%= settings.contentFilter === 'low' ? 'selected' : '' %>>Low - Block ads only</option>
+            <option value="medium" <%= settings.contentFilter === 'medium' ? 'selected' : '' %>>Medium - Block ads, popups, and social widgets</option>
+            <option value="high" <%= settings.contentFilter === 'high' ? 'selected' : '' %>>High - Maximum filtering (may break some sites)</option>
+          </select>
+          <p class="setting-description">Controls the level of content filtering applied to websites</p>
+        </div>
+      </div>
+      
+      <div class="settings-actions">
+        <button type="submit" class="btn-primary">Save Settings</button>
+        <button type="reset" class="btn-secondary">Reset to Defaults</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<%- include('partials/footer') %>
