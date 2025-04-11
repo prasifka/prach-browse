@@ -1,6 +1,10 @@
 # Prach Browse
 > A high-performance, privacy-focused server-side browser solution
 
+> [!CAUTION]
+> This project is under development, has various bugs and safety issues.
+> Be careful when working with this app.
+
 ## Overview
 
 Robust server-side browser that acts as an intermediary between users and the internet. By proxying all web requests through a server, enhances user privacy, eliminates client-side tracking, and provides a cleaner browsing experience. 
