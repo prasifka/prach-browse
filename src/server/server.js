@@ -8,7 +8,30 @@ const setupServer = (app) => {
   const config = app.locals.config;
 
   // Set up downloads directory
-  app.locals.downloadDir = config.downloadDir;
+  const downloadDir = path.resolve(process.cwd(), config.downloadDir);
+  try {
+    if (!fs.existsSync(downloadDir)) {
+      fs.mkdirSync(downloadDir, { recursive: true });
+      console.log(`Created download directory: ${downloadDir}`);
+    }
+    app.locals.downloadDir = downloadDir;
+  } catch (error) {
+    console.error(`Error with download directory: ${error.message}`);
+    // Fallback to a temporary directory
+    const tempDir = path.join(process.cwd(), "temp_downloads");
+    try {
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+      app.locals.downloadDir = tempDir;
+      console.log(`Using fallback download directory: ${tempDir}`);
+    } catch (fallbackError) {
+      console.error(
+        `Critical: Could not create fallback directory: ${fallbackError.message}`
+      );
+      app.locals.downloadDir = null;
+    }
+  }
 
   // Set up cache
   app.locals.cache = createCache(config.cacheTTL);

@@ -2,7 +2,7 @@
 
 <div class="prach-container">
   <div class="prach-browse">
-    <div class="prach-address-bar">
+    <!-- <div class="prach-address-bar">
       <form action="/browse" method="GET">
         <input
           type="text"
@@ -12,14 +12,16 @@
         />
         <button type="submit">Go</button>
       </form>
-    </div>
+    </div> -->
 
     <% if (error) { %>
-    <div class="prach-error">
-      <p><%= error %></p>
-    </div>
+      <div class="prach-error">
+        <p><%= error %></p>
+      </div>
     <% } else { %>
-    <div class="prach-content"><%- content %></div>
+      <div class="prach-page-content">
+        <%- content %>
+      </div>
     <% } %>
   </div>
 </div>

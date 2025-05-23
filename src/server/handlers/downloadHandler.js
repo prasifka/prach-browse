@@ -40,16 +40,27 @@ const handleDownloadRequest = async (req, res) => {
     }
 
     // Generate a unique filename
-    const originalFilename = path
-      .basename(parsedUrl.normalizedUrl)
-      .split("?")[0];
+    const originalFilename = path.basename(
+      parsedUrl.normalizedUrl.split("?")[0]
+    );
     const fileExtension = path.extname(originalFilename) || "";
     const fileBasename = path.basename(originalFilename, fileExtension);
     const uniqueFilename = `${fileBasename}-${uuidv4().substring(
       0,
       8
     )}${fileExtension}`;
-    const downloadPath = path.join(req.app.locals.downloadDir, uniqueFilename);
+
+    // Ensure download directory exists
+    const downloadDir =
+      req.app.locals.downloadDir || path.join(process.cwd(), "downloads");
+    if (!fs.existsSync(downloadDir)) {
+      fs.mkdirSync(downloadDir, { recursive: true });
+    }
+
+    const downloadPath = path.join(downloadDir, uniqueFilename);
+
+    console.log(`Starting download from ${parsedUrl.normalizedUrl}`);
+    console.log(`Saving to: ${downloadPath}`);
 
     // Make request to download file
     const response = await axios({
@@ -65,6 +76,7 @@ const handleDownloadRequest = async (req, res) => {
         Connection: "keep-alive",
       },
       timeout: 30000,
+      maxRedirects: 5,
     });
 
     // Get content type and size
@@ -72,15 +84,26 @@ const handleDownloadRequest = async (req, res) => {
       response.headers["content-type"] || "application/octet-stream";
     const contentLength = response.headers["content-length"] || 0;
 
+    console.log(`Content type: ${contentType}`);
+    console.log(`Content length: ${contentLength} bytes`);
+
     // Create write stream to save file
     const writer = fs.createWriteStream(downloadPath);
 
     // Pipe the response data to the file
     response.data.pipe(writer);
 
-    // Handle completion
-    writer.on("finish", () => {
-      console.log(`File downloaded: ${downloadPath}`);
+    // Set up promise to wait for download to complete
+    const downloadComplete = new Promise((resolve, reject) => {
+      writer.on("finish", resolve);
+      writer.on("error", reject);
+      response.data.on("error", reject);
+    });
+
+    try {
+      // Wait for download to complete
+      await downloadComplete;
+      console.log(`Download complete: ${downloadPath}`);
 
       // Set headers for download
       res.setHeader(
@@ -92,35 +115,39 @@ const handleDownloadRequest = async (req, res) => {
       // Send the file
       res.download(downloadPath, originalFilename, (err) => {
         if (err) {
-          console.error("Download error:", err);
+          console.error("Error sending file:", err);
         }
 
-        // Delete the file after download
-        fs.unlink(downloadPath, (unlinkErr) => {
-          if (unlinkErr) {
-            console.error("Error deleting file:", unlinkErr);
-          }
-        });
+        // Schedule file deletion for later (to ensure download completes)
+        setTimeout(() => {
+          fs.unlink(downloadPath, (unlinkErr) => {
+            if (unlinkErr) {
+              console.error("Error deleting file:", unlinkErr);
+            } else {
+              console.log(`Temporary file deleted: ${downloadPath}`);
+            }
+          });
+        }, 60000); // Delete after 1 minute
       });
-    });
+    } catch (error) {
+      console.error("Download failed:", error);
+      writer.end();
 
-    // Handle errors
-    writer.on("error", (err) => {
-      console.error("File write error:", err);
-      res.render("index", {
-        title: "Prach Browse",
-        url: "",
-        content: null,
-        error: `Error downloading file: ${err.message}`,
-      });
-    });
+      // Delete the incomplete file
+      try {
+        fs.unlinkSync(downloadPath);
+      } catch (unlinkErr) {
+        console.error("Error deleting incomplete file:", unlinkErr);
+      }
+
+      throw error;
+    }
   } catch (error) {
     console.error("Download error:", error.message);
-    res.render("index", {
-      title: "Prach Browse",
-      url: "",
-      content: null,
-      error: `Error downloading file: ${error.message}`,
+    res.status(500).render("error", {
+      title: "Download Error",
+      message: `Error downloading file: ${error.message}`,
+      error: { status: 500 },
     });
   }
 };

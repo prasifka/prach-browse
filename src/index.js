@@ -42,15 +42,15 @@ app.use(cookieParser()); // Parse cookies
 app.use(cors()); // Enable CORS
 
 // Static files
-app.use(
-  express.static(path.join(__dirname, "public"), {
-    setHeaders: (res, path) => {
-      if (path.endsWith(".js")) {
-        res.setHeader("Content-Type", "application/javascript");
-      }
-    },
-  })
-);
+app.use(express.static(path.join(__dirname, "public"), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript; charset=UTF-8');
+    } else if (filePath.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css; charset=UTF-8');
+    }
+  }
+}));
 
 // Make config available to all routes
 app.locals.config = config;

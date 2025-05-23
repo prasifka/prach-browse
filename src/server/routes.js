@@ -4,6 +4,9 @@ const { handleSearchRequest } = require("./handlers/searchHandler");
 const { handleDownloadRequest } = require("./handlers/downloadHandler");
 const { parseUrl } = require("../processing/urlProcessor");
 
+const path = require("path");
+const fs = require("fs");
+
 // Setup application routes
 const setupRoutes = (app) => {
   // Home route - renders the main interface
@@ -50,12 +53,58 @@ const setupRoutes = (app) => {
     res.redirect("/settings");
   });
 
+  app.get("/clear-cache", (req, res) => {
+    res.redirect("/settings");
+  })
+
+  // Clear cache route
+  app.post("/clear-cache", (req, res) => {
+    if (app.locals.cache) {
+      app.locals.cache.flushAll();
+      console.log("Cache cleared manually.");
+    }
+    res.redirect("/settings");
+  });
+
   // About route
   app.get("/about", (req, res) => {
     res.render("about", {
       title: "About - Prach Browse",
     });
   });
+
+  app.get("*.js", (req, res, next) => {
+    const jsFilePath = path.join(__dirname, "..", "public", req.path);
+
+    if (fs.existsSync(jsFilePath)) {
+      res.set("Content-Type", "application/javascript; charset=UTF-8");
+      fs.createReadStream(jsFilePath).pipe(res);
+    } else {
+      next();
+    }
+  });
+
+  app.get("*.css", (req, res, next) => {
+    const cssFilePath = path.join(__dirname, "..", "public", req.path);
+
+    if (fs.existsSync(cssFilePath)) {
+      res.set("Content-Type", "text/css; charset=UTF-8");
+      fs.createReadStream(cssFilePath).pipe(res);
+    } else {
+      next();
+    }
+  });
+
+  const {
+    handleImageProxy,
+    handleMediaProxy,
+    handleResourceProxy,
+  } = require("./handlers/proxyHandlers");
+
+  // Proxy routes for resources
+  app.get("/proxy-image", handleImageProxy);
+  app.get("/proxy-media", handleMediaProxy);
+  app.get("/proxy-resource", handleResourceProxy);
 
   // 404 handler
   app.use((req, res) => {

@@ -18,5 +18,11 @@
         <a href="/about">About</a>
       </div>
     </div>
+    <% if (typeof url !== 'undefined' && url) { %>
+      <form action="/browse" method="GET" class="prach-header-form">
+        <input type="text" name="url" value="<%= url %>" placeholder="Enter URL or search query" />
+        <button type="submit">Go</button>
+      </form>
+    <% } %>
   </header>
   <main class="prach-main">

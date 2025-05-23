@@ -129,6 +129,18 @@ const handleResourceProxy = async (req, res) => {
       return res.status(400).send("Invalid URL");
     }
 
+    const cache = req.app.locals.cache;
+    const cacheKey = `resource:${parsedUrl.normalizedUrl}`;
+
+    // Try to serve from cache
+    const cached = cache && cache.get(cacheKey);
+    if (cached) {
+      console.log(`Serving ${cacheKey} from cache`);
+      res.setHeader("Content-Type", cached.contentType);
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      return res.send(cached.data);
+    }
+
     // Select user agent
     let userAgent = "Prach-Browse/1.0";
     if (req.app.locals.customUserAgent) {
@@ -137,7 +149,7 @@ const handleResourceProxy = async (req, res) => {
       userAgent = getRandomUserAgent(req.app.locals.userAgents);
     }
 
-    // Fetch the resource
+    // Fetch resource
     const response = await axios({
       method: "GET",
       url: parsedUrl.normalizedUrl,
@@ -151,12 +163,18 @@ const handleResourceProxy = async (req, res) => {
       maxRedirects: 5,
     });
 
-    // Set appropriate headers
     const contentType = response.headers["content-type"] || "application/octet-stream";
-    res.setHeader("Content-Type", contentType);
-    res.setHeader("Cache-Control", "public, max-age=86400"); // Cache for 24 hours
 
-    // Send the resource
+    // Ulož do cache
+    if (cache) {
+      cache.set(cacheKey, {
+        contentType,
+        data: response.data,
+      });
+    }
+
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Cache-Control", "public, max-age=3600");
     res.send(response.data);
   } catch (error) {
     console.error("Resource proxy error:", error.message);
@@ -168,4 +186,4 @@ module.exports = {
   handleImageProxy,
   handleMediaProxy,
   handleResourceProxy,
-};
+}; 

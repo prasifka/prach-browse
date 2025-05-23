@@ -1,7 +1,7 @@
-const cheerio = require('cheerio');
-const { resolveUrl } = require('./urlProcessor');
-const { applyTrackingPrevention } = require('./trackingPrevention');
-const { applyContentFilter } = require('./contentFilter');
+const cheerio = require("cheerio");
+const { resolveUrl } = require("./urlProcessor");
+const { applyTrackingPrevention } = require("./trackingPrevention");
+const { applyContentFilter } = require("./contentFilter");
 
 /**
  * Process HTML content
@@ -12,168 +12,182 @@ const { applyContentFilter } = require('./contentFilter');
  */
 const processHtml = async (html, baseUrl, options = {}) => {
   try {
-    // Load HTML into cheerio
     const $ = cheerio.load(html);
-    
-    // Process based on options
+
+    $('meta[http-equiv="Content-Security-Policy"]').remove();
+
     if (options.disableJs) {
-      // Remove script tags
-      $('script').remove();
-      // Remove onclick, onload, and other event handlers
-      $('*').each((i, el) => {
+      $("script").remove();
+      $("*").each((i, el) => {
         const attribs = $(el).attr();
         for (const attr in attribs) {
-          if (attr.startsWith('on')) {
+          if (attr.startsWith("on")) {
             $(el).removeAttr(attr);
           }
         }
       });
     }
-    
-    // Apply tracking prevention
+
     applyTrackingPrevention($);
-    
-    // Apply content filtering if enabled
-    if (options.contentFilter && options.contentFilter !== 'none') {
+
+    if (options.contentFilter && options.contentFilter !== "none") {
       applyContentFilter($, options.contentFilter);
     }
-    
-    // Process links to route through proxy
-    $('a').each((i, el) => {
-      const href = $(el).attr('href');
-      if (href) {
-        // Resolve relative URLs
+
+    // Proxy script src
+    $("script[src]").each((i, el) => {
+      const src = $(el).attr("src");
+      if (src && !src.startsWith("data:")) {
+        const absoluteUrl = resolveUrl(src, baseUrl);
+        $(el).attr(
+          "src",
+          `/proxy-resource?url=${encodeURIComponent(absoluteUrl)}`
+        );
+      }
+    });
+
+    // Proxy external stylesheets
+    $('link[rel="stylesheet"][href]').each((i, el) => {
+      const href = $(el).attr("href");
+      if (href && !href.startsWith("data:")) {
         const absoluteUrl = resolveUrl(href, baseUrl);
-        // Replace with proxy URL
-        $(el).attr('href', `/browse?url=${encodeURIComponent(absoluteUrl)}`);
+        $(el).attr(
+          "href",
+          `/proxy-resource?url=${encodeURIComponent(absoluteUrl)}`
+        );
       }
     });
-    
-    // Process forms to route through proxy
-    $('form').each((i, el) => {
-      const action = $(el).attr('action') || '';
-      if (action) {
-        // Resolve relative URLs
+
+    // Proxy fonts, icons etc. via <link>
+    $("link[href]").each((i, el) => {
+      const href = $(el).attr("href");
+      if (href && !href.startsWith("data:") && !href.startsWith("/proxy-")) {
+        const absoluteUrl = resolveUrl(href, baseUrl);
+        $(el).attr(
+          "href",
+          `/proxy-resource?url=${encodeURIComponent(absoluteUrl)}`
+        );
+      }
+    });
+
+    // Proxy all hyperlinks
+    $("a").each((i, el) => {
+      const href = $(el).attr("href");
+
+      if (!href || href.startsWith("javascript:") || href.startsWith("#")) {
+        return;
+      }
+
+      const absoluteUrl = resolveUrl(href, baseUrl);
+      $(el).attr("href", `/browse?url=${encodeURIComponent(absoluteUrl)}`);
+    });
+
+    // Proxy forms
+    $("form").each((i, el) => {
+      const action = $(el).attr("action") || "";
+      if (action && !action.startsWith("javascript:")) {
         const absoluteUrl = resolveUrl(action, baseUrl);
-        // Replace with proxy URL
-        $(el).attr('action', `/browse?url=${encodeURIComponent(absoluteUrl)}`);
+        $(el).attr("action", `/browse?url=${encodeURIComponent(absoluteUrl)}`);
       }
-      // Add hidden input for original form action
-      $(el).append(`<input type="hidden" name="_prach_original_action" value="${action}">`);
-      // Modify method if needed
-      $(el).attr('method', 'POST');
-    });
-    
-    // Process images to route through proxy
-    $('img').each((i, el) => {
-      const src = $(el).attr('src');
-      if (src) {
-        // Resolve relative URLs
-        const absoluteUrl = resolveUrl(src, baseUrl);
-        // Replace with proxy URL
-        $(el).attr('src', absoluteUrl);
+      $(el).append(
+        `<input type="hidden" name="_prach_original_action" value="${action}">`
+      );
+      if (!$(el).attr("method")) {
+        $(el).attr("method", "POST");
       }
     });
-    
-    // Add download links for media files
-    $('video source, audio source').each((i, el) => {
-      const src = $(el).attr('src');
-      if (src) {
-        // Resolve relative URLs
+
+    // Proxy images
+    $("img").each((i, el) => {
+      const src = $(el).attr("src");
+      if (src && !src.startsWith("data:")) {
         const absoluteUrl = resolveUrl(src, baseUrl);
-        // Replace with direct URL (media files often need direct access)
-        $(el).attr('src', absoluteUrl);
-        // Add download link after the media element
+        $(el).attr(
+          "src",
+          `/proxy-image?url=${encodeURIComponent(absoluteUrl)}`
+        );
+      }
+    });
+
+    // Proxy media
+    $("video source, audio source").each((i, el) => {
+      const src = $(el).attr("src");
+      if (src && !src.startsWith("data:")) {
+        const absoluteUrl = resolveUrl(src, baseUrl);
+        $(el).attr(
+          "src",
+          `/proxy-media?url=${encodeURIComponent(absoluteUrl)}`
+        );
         $(el).parent().after(`<div class="prach-download-link">
-          <a href="/download?url=${encodeURIComponent(absoluteUrl)}" target="_blank">Download Media</a>
-        </div>`);
+            <a href="/download?url=${encodeURIComponent(
+              absoluteUrl
+            )}" target="_blank">Download Media</a>
+          </div>`);
       }
     });
-    
-    // Add Prach Browse header
-    $('body').prepend(`
-      <div class="prach-header">
-        <div class="prach-logo">
-          <a href="/">Prach Browse</a>
-        </div>
-        <div class="prach-address-bar">
-          <form action="/browse" method="GET">
-            <input type="text" name="url" value="${baseUrl}" placeholder="Enter URL or search query">
-            <button type="submit">Go</button>
-          </form>
-        </div>
-        <div class="prach-actions">
-          <a href="/settings">Settings</a>
-          <a href="/about">About</a>
-        </div>
-      </div>
-      <style>
-        .prach-header {
-          position: sticky;
-          top: 0;
-          background: #f8f9fa;
-          padding: 10px;
-          border-bottom: 1px solid #ddd;
-          display: flex;
-          align-items: center;
-          z-index: 1000;
-        }
-        .prach-logo {
-          flex: 0 0 150px;
-          font-weight: bold;
-        }
-        .prach-address-bar {
-          flex: 1;
-        }
-        .prach-address-bar form {
-          display: flex;
-        }
-        .prach-address-bar input {
-          flex: 1;
-          padding: 8px;
-          border: 1px solid #ccc;
-          border-radius: 4px 0 0 4px;
-        }
-        .prach-address-bar button {
-          padding: 8px 16px;
-          background: #4285f4;
-          color: white;
-          border: none;
-          border-radius: 0 4px 4px 0;
-          cursor: pointer;
-        }
-        .prach-actions {
-          flex: 0 0 150px;
-          text-align: right;
-        }
-        .prach-actions a {
-          margin-left: 10px;
-          text-decoration: none;
-          color: #4285f4;
-        }
-        .prach-download-link {
-          margin: 5px 0;
-          padding: 5px;
-          background: #f0f0f0;
-          border-radius: 4px;
-          display: inline-block;
-        }
-        .prach-download-link a {
-          color: #4285f4;
-          text-decoration: none;
-        }
-      </style>
-    `);
-    
-    // Return processed HTML
+
+    // Proxy CSS background URLs
+    $("style").each((i, el) => {
+      let cssContent = $(el).html();
+      if (cssContent) {
+        const urlRegex = /url\(['"]?([^'"()]+)['"]?\)/g;
+        cssContent = cssContent.replace(urlRegex, (match, url) => {
+          if (url.startsWith("data:")) {
+            return match;
+          }
+          const absoluteUrl = resolveUrl(url, baseUrl);
+          return `url("/proxy-resource?url=${encodeURIComponent(
+            absoluteUrl
+          )}")`;
+        });
+        $(el).html(cssContent);
+      }
+    });
+
+    const attrsToString = (attrs, options = {}) => {
+      const skip = options.skip || [];
+      return Object.entries(attrs)
+        .filter(([key]) => !skip.includes(key))
+        .map(([key, value]) => `${key}="${value}"`)
+        .join(" ");
+    };
+
+    // Replace <header> tags
+    $("header").each((i, el) => {
+      const attrs = $(el).attr();
+      const inner = $(el).html();
+
+      const classAttr = ["proxy-header"];
+      if (attrs.class) classAttr.push(attrs.class);
+
+      $(el).replaceWith(
+        `<div ${attrsToString(attrs, {
+          skip: ["class"],
+        })} class="${classAttr.join(" ")}">${inner}</div>`
+      );
+    });
+
+    // Replace <nav> tags
+    $("nav").each((i, el) => {
+      const attrs = $(el).attr();
+      const inner = $(el).html();
+
+      const classAttr = ["proxy-nav"];
+      if (attrs.class) classAttr.push(attrs.class);
+
+      $(el).replaceWith(
+        `<div ${attrsToString(attrs, {
+          skip: ["class"],
+        })} class="${classAttr.join(" ")}">${inner}</div>`
+      );
+    });
     return $.html();
-    
   } catch (error) {
-    console.error('HTML processing error:', error.message);
+    console.error("HTML processing error:", error.message);
     return `<div class="error">Error processing content: ${error.message}</div>`;
   }
 };
 
 module.exports = {
-  processHtml
+  processHtml,
 };
