@@ -8,12 +8,16 @@ const parseUrl = (url) => {
     // Add http:// prefix if missing
     let normalizedUrl = url.trim();
 
-    // Check if it's a search query (no protocol, no www, contains spaces)
-    if (
+    // Enhanced search query detection
+    const isSearchQuery =
       !normalizedUrl.includes("://") &&
       !normalizedUrl.startsWith("www.") &&
-      normalizedUrl.includes(" ")
-    ) {
+      !normalizedUrl.startsWith("ftp.") &&
+      (normalizedUrl.includes(" ") || // Contains spaces
+        (!normalizedUrl.includes(".") && normalizedUrl.length > 0) || // No dots (probably search)
+        /^[a-zA-Z0-9\s\-_]+$/.test(normalizedUrl)); // Only contains alphanumeric, spaces, hyphens, underscores
+
+    if (isSearchQuery) {
       return {
         valid: true,
         isSearchQuery: true,
@@ -22,9 +26,23 @@ const parseUrl = (url) => {
       };
     }
 
-    // Add protocol if missing
+    // Add protocol if missing but looks like a URL
     if (!normalizedUrl.includes("://")) {
-      normalizedUrl = "http://" + normalizedUrl;
+      // Check if it looks like a domain
+      if (
+        normalizedUrl.includes(".") ||
+        normalizedUrl.startsWith("localhost")
+      ) {
+        normalizedUrl = "http://" + normalizedUrl;
+      } else {
+        // Treat as search query
+        return {
+          valid: true,
+          isSearchQuery: true,
+          normalizedUrl: `/search?q=${encodeURIComponent(normalizedUrl)}`,
+          title: `Search: ${normalizedUrl}`,
+        };
+      }
     }
 
     // Parse URL
@@ -47,7 +65,14 @@ const parseUrl = (url) => {
     };
   } catch (error) {
     console.error("URL parsing error:", error.message);
-    return { valid: false };
+
+    // If URL parsing failed, treat as search query
+    return {
+      valid: true,
+      isSearchQuery: true,
+      normalizedUrl: `/search?q=${encodeURIComponent(url.trim())}`,
+      title: `Search: ${url.trim()}`,
+    };
   }
 };
 
@@ -59,6 +84,17 @@ const parseUrl = (url) => {
  */
 const resolveUrl = (relativeUrl, baseUrl) => {
   try {
+    // Handle data URLs
+    if (relativeUrl.startsWith("data:")) {
+      return relativeUrl;
+    }
+
+    // Handle protocol-relative URLs
+    if (relativeUrl.startsWith("//")) {
+      const baseUrlObj = new URL(baseUrl);
+      return `${baseUrlObj.protocol}${relativeUrl}`;
+    }
+
     return new URL(relativeUrl, baseUrl).href;
   } catch (error) {
     console.error("URL resolution error:", error.message);
