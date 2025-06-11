@@ -84,21 +84,29 @@ button,
   padding: 1rem;
 }
 
+.prach-main {
+  min-height: calc(100vh - 120px);
+}
+
+/* Header Styles - Consolidated */
 .prach-header {
   background-color: var(--light-bg);
   border-bottom: 1px solid var(--border-color);
-  padding: 0.5rem 0;
+  padding: 10px;
   position: sticky;
   top: 0;
   z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .prach-header-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  width: 100%;
   max-width: 1200px;
-  margin: 0 auto;
   padding: 0 1rem;
 }
 
@@ -113,10 +121,30 @@ button,
   color: var(--text-color);
 }
 
-.prach-main {
-  min-height: calc(100vh - 120px);
+.prach-header-form {
+  margin-top: 10px;
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  max-width: 600px;
 }
 
+.prach-header-form input[type="text"] {
+  flex-grow: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.prach-header-form button {
+  padding: 8px 16px;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+/* Footer */
 .prach-footer {
   background-color: var(--light-bg);
   border-top: 1px solid var(--border-color);
@@ -147,7 +175,8 @@ button,
   margin-bottom: 2rem;
 }
 
-.prach-logo img {
+.prach-logo img,
+.prach-logo svg {
   max-width: 200px;
   margin-bottom: 1rem;
 }
@@ -240,12 +269,25 @@ button,
   border-radius: 0 var(--radius) var(--radius) 0;
 }
 
-.prach-content {
+/* Browse Content - Consolidated */
+.prach-content,
+.prach-page-content {
   background-color: white;
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
   padding: 1rem;
   min-height: 400px;
+  overflow-x: auto;
+}
+
+.prach-page-content table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.prach-page-content img {
+  max-width: 100%;
+  height: auto;
 }
 
 /* Search Page */
@@ -291,6 +333,27 @@ button,
   gap: 1rem;
 }
 
+.settings-form select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background-color: white;
+  font-size: 1rem;
+}
+
+.settings-form input[type="checkbox"] {
+  margin-right: 8px;
+  transform: scale(1.2);
+}
+
+.settings-form label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 500;
+}
+
 /* About Page */
 .about-content {
   max-width: 800px;
@@ -306,12 +369,18 @@ button,
   margin-bottom: 1rem;
 }
 
-/* Error Page */
+/* Error Styles - Consolidated */
 .prach-error {
+  background-color: #fff5f5;
+  border: 1px solid #feb2b2;
+  color: #c53030;
+  padding: 1rem;
+  border-radius: var(--radius);
+  margin: 1rem 0;
   text-align: center;
-  padding: 3rem 0;
   max-width: 600px;
-  margin: 0 auto;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .error-icon {
@@ -344,6 +413,108 @@ button,
   margin-top: 2rem;
 }
 
+/* Download Links - Consolidated */
+.prach-download-link {
+  margin: 8px 0;
+  padding: 8px 12px;
+  background: var(--light-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  display: inline-block;
+  font-size: 0.9rem;
+}
+
+.prach-download-link a {
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.prach-download-link a:hover {
+  text-decoration: underline;
+}
+
+/* Proxy Element Fixes */
+.proxy-header {
+  position: relative !important;
+  top: auto !important;
+  z-index: auto !important;
+}
+
+.proxy-nav {
+  background: transparent;
+}
+
+/* Loading Indicator */
+.prach-loading {
+  text-align: center;
+  padding: 2rem;
+  color: var(--light-text);
+}
+
+.prach-loading::after {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border-color);
+  border-top: 2px solid var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-left: 10px;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Danger Button */
+.danger-button {
+  background-color: var(--accent-color);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+.danger-button:hover {
+  background-color: #d73027;
+}
+
+/* Content Iframe Handling */
+iframe {
+  max-width: 100%;
+  border: 1px solid var(--border-color);
+}
+
+/* Embed Placeholder */
+.prach-embed-placeholder {
+  border: 2px dashed var(--border-color);
+  padding: 20px;
+  text-align: center;
+  background-color: var(--light-bg);
+  border-radius: var(--radius);
+  margin: 10px 0;
+}
+
+.prach-embed-placeholder p {
+  margin-bottom: 10px;
+  color: var(--light-text);
+}
+
+.prach-embed-placeholder a {
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .feature-grid {
@@ -369,101 +540,19 @@ button,
   .prach-footer-links a {
     margin-left: 0;
   }
-}
 
-/* Prach Header in Content */
-.prach-header {
-  position: sticky;
-  top: 0;
-  background: var(--light-bg);
-  padding: 10px;
-  border-bottom: 1px solid var(--border-color);
-  display: flex;
-  align-items: center;
-  z-index: 1000;
-}
+  .prach-page-content {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
 
-.prach-logo {
-  flex: 0 0 150px;
-  font-weight: bold;
-}
+  .prach-header-form {
+    flex-direction: column;
+    gap: 8px;
+  }
 
-.prach-address-bar {
-  flex: 1;
-}
-
-.prach-address-bar form {
-  display: flex;
-}
-
-.prach-address-bar input {
-  flex: 1;
-  padding: 8px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius) 0 0 var(--radius);
-}
-
-.prach-address-bar button {
-  padding: 8px 16px;
-  background: var(--primary-color);
-  color: white;
-  border: none;
-  border-radius: 0 var(--radius) var(--radius) 0;
-}
-
-.prach-actions {
-  flex: 0 0 150px;
-  text-align: right;
-}
-
-.prach-actions a {
-  margin-left: 10px;
-  text-decoration: none;
-  color: var(--primary-color);
-}
-
-.prach-download-link {
-  margin: 5px 0;
-  padding: 5px;
-  background: var(--light-bg);
-  border-radius: var(--radius);
-  display: inline-block;
-}
-
-.prach-download-link a {
-  color: var(--primary-color);
-  text-decoration: none;
-}
-
-.prach-header {
-  background-color: var(--light-bg);
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.prach-header-inner {
-  width: 100%;
-  max-width: 1000px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.prach-header-form {
-  margin-top: 10px;
-  display: flex;
-  gap: 10px;
-  width: 100%;
-  max-width: 600px;
-}
-
-.prach-header-form input[type="text"] {
-  flex-grow: 1;
-}
-
-.prach-main {
-  margin-top: 80px !important;
+  .prach-header-form input[type="text"] {
+    width: 100%;
+  }
 }
