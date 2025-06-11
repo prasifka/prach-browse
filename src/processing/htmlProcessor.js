@@ -14,8 +14,10 @@ const processHtml = async (html, baseUrl, options = {}) => {
   try {
     const $ = cheerio.load(html);
 
+    // Remove existing CSP headers
     $('meta[http-equiv="Content-Security-Policy"]').remove();
 
+    // Remove JavaScript if disabled
     if (options.disableJs) {
       $("script").remove();
       $("*").each((i, el) => {
@@ -28,163 +30,295 @@ const processHtml = async (html, baseUrl, options = {}) => {
       });
     }
 
+    // Apply tracking prevention
     applyTrackingPrevention($);
 
+    // Apply content filtering
     if (options.contentFilter && options.contentFilter !== "none") {
       applyContentFilter($, options.contentFilter);
     }
 
+    // Process all links first
+    $("a[href]").each((i, el) => {
+      const href = $(el).attr("href");
+
+      // Skip javascript:, mailto:, tel:, and anchor links
+      if (
+        !href ||
+        href.startsWith("javascript:") ||
+        href.startsWith("mailto:") ||
+        href.startsWith("tel:") ||
+        href.startsWith("#")
+      ) {
+        return;
+      }
+
+      try {
+        // Resolve to absolute URL
+        const absoluteUrl = resolveUrl(href, baseUrl);
+
+        // Route through our browse handler
+        $(el).attr("href", `/browse?url=${encodeURIComponent(absoluteUrl)}`);
+
+        // Optional: Add target="_self" to ensure it loads in the same frame
+        $(el).attr("target", "_self");
+      } catch (error) {
+        console.error(`Error processing link ${href}:`, error.message);
+      }
+    });
+
+    // Process forms
+    $("form").each((i, el) => {
+      const action = $(el).attr("action") || "";
+      const method = ($(el).attr("method") || "get").toLowerCase();
+
+      if (action && !action.startsWith("javascript:")) {
+        try {
+          const absoluteUrl = resolveUrl(action, baseUrl);
+
+          // Don't change the method - preserve GET/POST
+          $(el).attr("action", "/browse");
+
+          // Add hidden field with the original action URL
+          $(el).append(
+            `<input type="hidden" name="_original_url" value="${encodeURIComponent(
+              absoluteUrl
+            )}">`
+          );
+
+          // Add hidden field with the original method
+          $(el).append(
+            `<input type="hidden" name="_original_method" value="${method}">`
+          );
+
+          // Add hidden field to indicate this is a form submission
+          $(el).append(`<input type="hidden" name="_form_submit" value="1">`);
+
+          // For GET forms, we need to ensure they submit as POST to our handler
+          // but we'll convert back to GET when making the actual request
+          if (method === "get") {
+            $(el).attr("method", "post");
+          }
+
+          console.log(`Processed form: ${action} (${method}) -> /browse`);
+        } catch (error) {
+          console.error(`Error processing form ${action}:`, error.message);
+        }
+      }
+    });
+
     // Proxy script src
     $("script[src]").each((i, el) => {
       const src = $(el).attr("src");
-      if (src && !src.startsWith("data:")) {
-        const absoluteUrl = resolveUrl(src, baseUrl);
-        $(el).attr(
-          "src",
-          `/proxy-resource?url=${encodeURIComponent(absoluteUrl)}`
-        );
+      if (src && !src.startsWith("data:") && !src.startsWith("/proxy-")) {
+        try {
+          const absoluteUrl = resolveUrl(src, baseUrl);
+          $(el).attr(
+            "src",
+            `/proxy-resource?url=${encodeURIComponent(absoluteUrl)}`
+          );
+        } catch (error) {
+          console.error(`Error processing script ${src}:`, error.message);
+        }
       }
     });
 
     // Proxy external stylesheets
     $('link[rel="stylesheet"][href]').each((i, el) => {
       const href = $(el).attr("href");
-      if (href && !href.startsWith("data:")) {
-        const absoluteUrl = resolveUrl(href, baseUrl);
-        $(el).attr(
-          "href",
-          `/proxy-resource?url=${encodeURIComponent(absoluteUrl)}`
-        );
-      }
-    });
-
-    // Proxy fonts, icons etc. via <link>
-    $("link[href]").each((i, el) => {
-      const href = $(el).attr("href");
       if (href && !href.startsWith("data:") && !href.startsWith("/proxy-")) {
-        const absoluteUrl = resolveUrl(href, baseUrl);
-        $(el).attr(
-          "href",
-          `/proxy-resource?url=${encodeURIComponent(absoluteUrl)}`
-        );
+        try {
+          const absoluteUrl = resolveUrl(href, baseUrl);
+          $(el).attr(
+            "href",
+            `/proxy-resource?url=${encodeURIComponent(absoluteUrl)}`
+          );
+        } catch (error) {
+          console.error(`Error processing stylesheet ${href}:`, error.message);
+        }
       }
     });
 
-    // Proxy all hyperlinks
-    $("a").each((i, el) => {
+    // Proxy other linked resources (fonts, icons, etc.)
+    $("link[href]:not([rel='stylesheet'])").each((i, el) => {
       const href = $(el).attr("href");
-
-      if (!href || href.startsWith("javascript:") || href.startsWith("#")) {
-        return;
-      }
-
-      const absoluteUrl = resolveUrl(href, baseUrl);
-      $(el).attr("href", `/browse?url=${encodeURIComponent(absoluteUrl)}`);
-    });
-
-    // Proxy forms
-    $("form").each((i, el) => {
-      const action = $(el).attr("action") || "";
-      if (action && !action.startsWith("javascript:")) {
-        const absoluteUrl = resolveUrl(action, baseUrl);
-        $(el).attr("action", `/browse?url=${encodeURIComponent(absoluteUrl)}`);
-      }
-      $(el).append(
-        `<input type="hidden" name="_prach_original_action" value="${action}">`
-      );
-      if (!$(el).attr("method")) {
-        $(el).attr("method", "POST");
+      if (
+        href &&
+        !href.startsWith("data:") &&
+        !href.startsWith("/proxy-") &&
+        !href.startsWith("#")
+      ) {
+        try {
+          const absoluteUrl = resolveUrl(href, baseUrl);
+          $(el).attr(
+            "href",
+            `/proxy-resource?url=${encodeURIComponent(absoluteUrl)}`
+          );
+        } catch (error) {
+          console.error(
+            `Error processing link resource ${href}:`,
+            error.message
+          );
+        }
       }
     });
 
     // Proxy images
-    $("img").each((i, el) => {
+    $("img[src]").each((i, el) => {
       const src = $(el).attr("src");
-      if (src && !src.startsWith("data:")) {
-        const absoluteUrl = resolveUrl(src, baseUrl);
-        $(el).attr(
-          "src",
-          `/proxy-image?url=${encodeURIComponent(absoluteUrl)}`
-        );
+      if (src && !src.startsWith("data:") && !src.startsWith("/proxy-")) {
+        try {
+          const absoluteUrl = resolveUrl(src, baseUrl);
+          $(el).attr(
+            "src",
+            `/proxy-image?url=${encodeURIComponent(absoluteUrl)}`
+          );
+        } catch (error) {
+          console.error(`Error processing image ${src}:`, error.message);
+        }
       }
     });
 
-    // Proxy media
-    $("video source, audio source").each((i, el) => {
+    // Proxy media sources
+    $("video source[src], audio source[src]").each((i, el) => {
       const src = $(el).attr("src");
-      if (src && !src.startsWith("data:")) {
-        const absoluteUrl = resolveUrl(src, baseUrl);
-        $(el).attr(
-          "src",
-          `/proxy-media?url=${encodeURIComponent(absoluteUrl)}`
-        );
-        $(el).parent().after(`<div class="prach-download-link">
-            <a href="/download?url=${encodeURIComponent(
-              absoluteUrl
-            )}" target="_blank">Download Media</a>
-          </div>`);
+      if (src && !src.startsWith("data:") && !src.startsWith("/proxy-")) {
+        try {
+          const absoluteUrl = resolveUrl(src, baseUrl);
+          $(el).attr(
+            "src",
+            `/proxy-media?url=${encodeURIComponent(absoluteUrl)}`
+          );
+
+          // Add download link for media
+          $(el).parent().after(`
+            <div class="prach-download-link">
+              <a href="/download?url=${encodeURIComponent(
+                absoluteUrl
+              )}" target="_blank">
+                Download Media
+              </a>
+            </div>
+          `);
+        } catch (error) {
+          console.error(`Error processing media ${src}:`, error.message);
+        }
       }
     });
 
-    // Proxy CSS background URLs
+    // Proxy video and audio src attributes directly
+    $("video[src], audio[src]").each((i, el) => {
+      const src = $(el).attr("src");
+      if (src && !src.startsWith("data:") && !src.startsWith("/proxy-")) {
+        try {
+          const absoluteUrl = resolveUrl(src, baseUrl);
+          $(el).attr(
+            "src",
+            `/proxy-media?url=${encodeURIComponent(absoluteUrl)}`
+          );
+
+          // Add download link
+          $(el).after(`
+            <div class="prach-download-link">
+              <a href="/download?url=${encodeURIComponent(
+                absoluteUrl
+              )}" target="_blank">
+                Download Media
+              </a>
+            </div>
+          `);
+        } catch (error) {
+          console.error(`Error processing direct media ${src}:`, error.message);
+        }
+      }
+    });
+
+    // Process CSS background URLs in style tags
     $("style").each((i, el) => {
       let cssContent = $(el).html();
       if (cssContent) {
         const urlRegex = /url\(['"]?([^'"()]+)['"]?\)/g;
         cssContent = cssContent.replace(urlRegex, (match, url) => {
-          if (url.startsWith("data:")) {
+          if (url.startsWith("data:") || url.startsWith("/proxy-")) {
             return match;
           }
-          const absoluteUrl = resolveUrl(url, baseUrl);
-          return `url("/proxy-resource?url=${encodeURIComponent(
-            absoluteUrl
-          )}")`;
+          try {
+            const absoluteUrl = resolveUrl(url, baseUrl);
+            return `url("/proxy-resource?url=${encodeURIComponent(
+              absoluteUrl
+            )}")`;
+          } catch (error) {
+            console.error(`Error processing CSS URL ${url}:`, error.message);
+            return match;
+          }
         });
         $(el).html(cssContent);
       }
     });
 
-    const attrsToString = (attrs, options = {}) => {
-      const skip = options.skip || [];
-      return Object.entries(attrs)
-        .filter(([key]) => !skip.includes(key))
-        .map(([key, value]) => `${key}="${value}"`)
-        .join(" ");
-    };
+    // Process inline style attributes for background images
+    $("[style*='url(']").each((i, el) => {
+      const style = $(el).attr("style");
+      if (style) {
+        const urlRegex = /url\(['"]?([^'"()]+)['"]?\)/g;
+        const newStyle = style.replace(urlRegex, (match, url) => {
+          if (url.startsWith("data:") || url.startsWith("/proxy-")) {
+            return match;
+          }
+          try {
+            const absoluteUrl = resolveUrl(url, baseUrl);
+            return `url("/proxy-resource?url=${encodeURIComponent(
+              absoluteUrl
+            )}")`;
+          } catch (error) {
+            console.error(
+              `Error processing inline CSS URL ${url}:`,
+              error.message
+            );
+            return match;
+          }
+        });
+        $(el).attr("style", newStyle);
+      }
+    });
 
-    // Replace <header> tags
+    // Replace semantic HTML5 tags that might cause issues
     $("header").each((i, el) => {
       const attrs = $(el).attr();
       const inner = $(el).html();
+      const classAttr = attrs.class
+        ? `${attrs.class} proxy-header`
+        : "proxy-header";
+      delete attrs.class;
 
-      const classAttr = ["proxy-header"];
-      if (attrs.class) classAttr.push(attrs.class);
+      const attrString = Object.entries(attrs)
+        .map(([key, value]) => `${key}="${value}"`)
+        .join(" ");
 
       $(el).replaceWith(
-        `<div ${attrsToString(attrs, {
-          skip: ["class"],
-        })} class="${classAttr.join(" ")}">${inner}</div>`
+        `<div class="${classAttr}" ${attrString}>${inner}</div>`
       );
     });
 
-    // Replace <nav> tags
     $("nav").each((i, el) => {
       const attrs = $(el).attr();
       const inner = $(el).html();
+      const classAttr = attrs.class ? `${attrs.class} proxy-nav` : "proxy-nav";
+      delete attrs.class;
 
-      const classAttr = ["proxy-nav"];
-      if (attrs.class) classAttr.push(attrs.class);
+      const attrString = Object.entries(attrs)
+        .map(([key, value]) => `${key}="${value}"`)
+        .join(" ");
 
       $(el).replaceWith(
-        `<div ${attrsToString(attrs, {
-          skip: ["class"],
-        })} class="${classAttr.join(" ")}">${inner}</div>`
+        `<div class="${classAttr}" ${attrString}>${inner}</div>`
       );
     });
+
     return $.html();
   } catch (error) {
     console.error("HTML processing error:", error.message);
-    return `<div class="error">Error processing content: ${error.message}</div>`;
+    return `<div class="prach-error">Error processing content: ${error.message}</div>`;
   }
 };
 
