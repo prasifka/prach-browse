@@ -29,6 +29,20 @@ const handleBrowseRequest = async (req, res) => {
       return res.redirect("/");
     }
 
+    // Decode URL if it's encoded (this fixes the Google search issue)
+    try {
+      if (url.includes("%")) {
+        const decodedUrl = decodeURIComponent(url);
+        console.log(`Decoded URL: ${url} -> ${decodedUrl}`);
+        url = decodedUrl;
+      }
+    } catch (decodeError) {
+      console.log(
+        "URL doesn't need decoding or decode failed:",
+        decodeError.message
+      );
+    }
+
     // Parse and normalize URL
     const parsedUrl = parseUrl(url);
     if (!parsedUrl.valid) {
