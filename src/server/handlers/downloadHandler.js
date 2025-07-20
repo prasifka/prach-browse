@@ -39,17 +39,6 @@ const handleDownloadRequest = async (req, res) => {
       userAgent = getRandomUserAgent(req.app.locals.userAgents);
     }
 
-    // Generate a unique filename
-    const originalFilename = path.basename(
-      parsedUrl.normalizedUrl.split("?")[0]
-    );
-    const fileExtension = path.extname(originalFilename) || "";
-    const fileBasename = path.basename(originalFilename, fileExtension);
-    const uniqueFilename = `${fileBasename}-${uuidv4().substring(
-      0,
-      8
-    )}${fileExtension}`;
-
     // Ensure download directory exists
     const downloadDir =
       req.app.locals.downloadDir || path.join(process.cwd(), "downloads");
@@ -57,10 +46,7 @@ const handleDownloadRequest = async (req, res) => {
       fs.mkdirSync(downloadDir, { recursive: true });
     }
 
-    const downloadPath = path.join(downloadDir, uniqueFilename);
-
     console.log(`Starting download from ${parsedUrl.normalizedUrl}`);
-    console.log(`Saving to: ${downloadPath}`);
 
     // Make request to download file
     const response = await axios({
@@ -79,13 +65,54 @@ const handleDownloadRequest = async (req, res) => {
       maxRedirects: 5,
     });
 
+    // Determine filename from headers or URL
+    let originalFilename = path.basename(parsedUrl.normalizedUrl.split("?")[0]);
+
+    // Extract filename from Content-Disposition header
+    const contentDisposition = response.headers["content-disposition"] || "";
+    const filenameMatch = contentDisposition.match(
+      /filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i
+    );
+    if (filenameMatch) {
+      originalFilename = decodeURIComponent(
+        filenameMatch[1] || filenameMatch[2]
+      );
+    }
+
     // Get content type and size
     const contentType =
       response.headers["content-type"] || "application/octet-stream";
     const contentLength = response.headers["content-length"] || 0;
 
+    // Determine file extension
+    const extensionMap = {
+      "application/pdf": ".pdf",
+      "application/zip": ".zip",
+      "application/x-zip-compressed": ".zip",
+      "image/jpeg": ".jpg",
+      "image/png": ".png",
+      "image/gif": ".gif",
+      "video/mp4": ".mp4",
+      "audio/mpeg": ".mp3",
+    };
+
+    let fileExtension = path.extname(originalFilename);
+    const fileBasename = path.basename(originalFilename, fileExtension);
+
+    if (!fileExtension && extensionMap[contentType]) {
+      fileExtension = extensionMap[contentType];
+      originalFilename = `${fileBasename}${fileExtension}`;
+    }
+
+    const uniqueFilename = `${fileBasename}-${uuidv4().substring(
+      0,
+      8
+    )}${fileExtension}`;
+    const downloadPath = path.join(downloadDir, uniqueFilename);
+
     console.log(`Content type: ${contentType}`);
     console.log(`Content length: ${contentLength} bytes`);
+    console.log(`Saving to: ${downloadPath}`);
 
     // Create write stream to save file
     const writer = fs.createWriteStream(downloadPath);
