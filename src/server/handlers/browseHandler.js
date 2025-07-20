@@ -61,6 +61,21 @@ const handleBrowseRequest = async (req, res) => {
       return res.redirect(parsedUrl.normalizedUrl);
     }
 
+    // Attempt to serve from cache before making a network request
+    const cacheK = `page:${url}`;
+    if (req.app.locals.cacheEnabled && !isFormSubmit) {
+      const cached = req.app.locals.cache.get(cacheK);
+      if (cached) {
+        console.log(`Serving ${cacheKey} from cache`);
+        return res.render("browse", {
+          title: `${parsedUrl.title || "Browsing"} - Prach Browse`,
+          url: url,
+          content: cached,
+          error: null,
+        });
+      }
+    }
+
     console.log(`Browsing: ${url}`);
 
     // Select user agent
