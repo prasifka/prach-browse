@@ -89,7 +89,16 @@ describe("Cache Manager", () => {
 describe("Config Manager", () => {
   test("loadConfig should load default configuration", () => {
     const config = loadConfig();
-    expect(config.port).toBe(3000);
+    expect(config.port).toBe("3000");
     expect(config.cacheEnabled).toBe(true);
   });
+});
+
+test("loadConfig should enable caching when flag provided without value", () => {
+  process.env.CACHE_ENABLED = "false";
+  process.argv = ["node", "index.js", "--cache-enabled"];
+  const config = loadConfig();
+  expect(config.cacheEnabled).toBe(true);
+  process.argv = ["node", "index.js"];
+  process.env.CACHE_ENABLED = "true";
 });
