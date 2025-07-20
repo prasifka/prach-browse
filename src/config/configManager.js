@@ -39,9 +39,8 @@ const loadConfig = () => {
     config.port = parseInt(args["port"], 10);
   }
 
-  if (args["cache-enabled"] !== undefined) {
-    config.cacheEnabled = args["cache-enabled"] === "true";
-  }
+  config.cacheEnabled =
+    args["cache-enabled"] === true || args["cache-enabled"] === "true";
 
   if (args["cache-ttl"]) {
     config.cacheTTL = parseInt(args["cache-ttl"], 10);
