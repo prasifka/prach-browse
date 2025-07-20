@@ -57,10 +57,44 @@ const processHtml = async (html, baseUrl, options = {}) => {
         // Resolve to absolute URL
         const absoluteUrl = resolveUrl(href, baseUrl);
 
-        // Route through our browse handler
-        $(el).attr("href", `/browse?url=${encodeURIComponent(absoluteUrl)}`);
+        // Determine if this link likely points to a downloadable file
+        const downloadExtensions = [
+          ".zip",
+          ".rar",
+          ".7z",
+          ".tar",
+          ".gz",
+          ".pdf",
+          ".doc",
+          ".docx",
+          ".xls",
+          ".xlsx",
+          ".ppt",
+          ".pptx",
+          ".jpg",
+          ".jpeg",
+          ".png",
+          ".gif",
+          ".mp4",
+          ".mp3",
+        ];
 
-        // Optional: Add target="_self" to ensure it loads in the same frame
+        const lowerUrl = absoluteUrl.toLowerCase();
+        const isDownload = downloadExtensions.some((ext) =>
+          lowerUrl.endsWith(ext)
+        );
+
+        // Route through appropriate handler
+        if (isDownload) {
+          $(el).attr(
+            "href",
+            `/download?url=${encodeURIComponent(absoluteUrl)}`
+          );
+        } else {
+          $(el).attr("href", `/browse?url=${encodeURIComponent(absoluteUrl)}`);
+        }
+
+        // Ensure links open in the same frame
         $(el).attr("target", "_self");
       } catch (error) {
         console.error(`Error processing link ${href}:`, error.message);
